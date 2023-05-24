@@ -19,7 +19,7 @@ int main(){
     float minZoom = 2;
 
     bool zoom = true;
-    
+
     do {
         myWindow.DrawWholeWindow(BLACK);
 
@@ -28,7 +28,7 @@ int main(){
             for (int j = -1; j < WINDOW_HEIGHT / rat.height / zoomFactor + 1; j++)
             {
                 myWindow.DrawRotatedIMG(myWindow.ZoomedIMG(rat, zoomFactor),
-                rat.width * i * zoomFactor, rat.height * j * zoomFactor, rotationFactor);
+                rat.width * i * zoomFactor, rat.height * j * zoomFactor, rotationFactor, PivotType::TopLeft);
             }
         }
         
@@ -42,6 +42,7 @@ int main(){
         // myWindow.DrawRectShape(400,200,0+x,20,RED);
         // myWindow.DrawFullRect(100,400,500,300+x, GREEN);
         // myWindow.DrawRectShape(WINDOW_WIDTH,WINDOW_HEIGHT,0,0,BLACK);
+        
         if (zoomFactor >= maxZoom)
             zoom = false;
         else if (zoomFactor <= minZoom)

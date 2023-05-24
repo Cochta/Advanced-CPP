@@ -11,6 +11,11 @@
 #define GREEN 0xFF00FF00
 #define BLUE 0xFF0000FF
 
+enum class PivotType {
+    TopLeft,
+    Center
+};
+
 class Window
 {
 private:
@@ -29,7 +34,7 @@ public:
     void DrawFullRect(int width, int height, int x, int y, uint32_t color);
     void DrawIMG(IMG image, int posX, int posY);
     void DrawWholeWindow(uint32_t color);
-    void DrawRotatedIMG(IMG image, int posX, int posY, float rotationAngle);
+    void DrawRotatedIMG(IMG image, int posX, int posY, float rotationAngle, PivotType pivotType);
     void DrawZoomedIMG(IMG image, int posX, int posY, float zoomFactor);
     void DrawZoomedAndRotatedIMG(IMG image, int posX, int posY, float zoomFactor, float rotationAngle);
     IMG ZoomedIMG(IMG image, float zoomFactor);
@@ -95,7 +100,8 @@ void Window::DrawIMG(IMG image, int posX, int posY) {
     for (int y = 0; y < image.height; y++) {
         for (int x = 0; x < image.width; x++) {
             int idx = (y * image.width + x) * 4;
-            uint32_t pixelColor = (image.img[idx + 3] << 24 | image.img[idx] << 16 | image.img[idx + 1] << 8 | image.img[idx + 2]);
+            uint32_t pixelColor = MFB_ARGB( image.img[idx+3],image.img[idx],
+                                            image.img[idx+1], image.img[idx+2] );
             DrawPXL(x + posX, y + posY, pixelColor);
         }
     }
@@ -104,16 +110,33 @@ void Window::DrawWholeWindow(uint32_t color)
 {
     memset(buffer, color, WINDOW_SIZE*4);
 }
-void Window::DrawRotatedIMG(IMG image, int posX, int posY, float rotationAngle) {
+void Window::DrawRotatedIMG(IMG image, int posX, int posY, float rotationAngle, PivotType pivotType) {
     int idx = 0;
     
     float cosAngle = cos(rotationAngle);
     float sinAngle = sin(rotationAngle);
 
+    int pivotX, pivotY;
+
+    // Determine pivot coordinates based on pivotType
+    switch (pivotType) {
+        case PivotType::TopLeft:
+            pivotX = 0;
+            pivotY = 0;
+            break;
+        case PivotType::Center:
+            pivotX = image.width / 2;
+            pivotY = image.height / 2;
+            break;
+    }
+
     for (int y = 0; y < image.height; y++) {
         for (int x = 0; x < image.width; x++) {
-            int rotatedX = static_cast<int>(cosAngle * x - sinAngle * y);
-            int rotatedY = static_cast<int>(sinAngle * x + cosAngle * y);
+            int relativeX = x - pivotX;
+            int relativeY = y - pivotY;
+
+            int rotatedX = static_cast<int>(cosAngle * relativeX - sinAngle * relativeY) + pivotX;
+            int rotatedY = static_cast<int>(sinAngle * relativeX + cosAngle * relativeY) + pivotY;
 
             int targetX = rotatedX + posX;
             int targetY = rotatedY + posY;
@@ -171,3 +194,4 @@ IMG Window::ZoomedIMG(IMG image, float zoomFactor) {
 
     return zoomedImage;
 }
+ 
