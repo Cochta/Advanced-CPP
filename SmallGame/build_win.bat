@@ -1,4 +1,5 @@
 mkdir bin
+xcopy ressources "bin/ressources" /E /I /Y
 clang++ code/main.cpp ^
     -o bin/game.exe ^
     -std=c++20 ^

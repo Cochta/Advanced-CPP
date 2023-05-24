@@ -19,19 +19,13 @@ int main(){
     float minZoom = 2;
 
     bool zoom = true;
-
-    if (banane.img != nullptr)
-    {
-        printf("failed to load banane");
-    }
     
-
     do {
         myWindow.DrawWholeWindow(BLACK);
 
         for (int i = -1; i < WINDOW_WIDTH / rat.width / zoomFactor + 1; i++)
         {
-            for (int j = -1; j < WINDOW_HEIGHT / rat.width / zoomFactor + 1; j++)
+            for (int j = -1; j < WINDOW_HEIGHT / rat.height / zoomFactor + 1; j++)
             {
                 myWindow.DrawRotatedIMG(myWindow.ZoomedIMG(rat, zoomFactor),
                 rat.width * i * zoomFactor, rat.height * j * zoomFactor, rotationFactor);

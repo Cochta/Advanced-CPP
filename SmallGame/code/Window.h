@@ -102,10 +102,7 @@ void Window::DrawIMG(IMG image, int posX, int posY) {
 }
 void Window::DrawWholeWindow(uint32_t color)
 {
-    for (int i = 0; i < WINDOW_SIZE; i++)
-    {
-        buffer[i] = color;
-    }
+    memset(buffer, color, WINDOW_SIZE*4);
 }
 void Window::DrawRotatedIMG(IMG image, int posX, int posY, float rotationAngle) {
     int idx = 0;
