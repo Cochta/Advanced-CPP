@@ -10,6 +10,7 @@ public:
     int width = 0, height = 0, channels = 4;
     IMG();
     IMG(const char* path);
+    
 };
 
 IMG::IMG(const char* path)
