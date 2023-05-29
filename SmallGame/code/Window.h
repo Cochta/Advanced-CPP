@@ -1,8 +1,14 @@
+#pragma once
 #include "MiniFB.h"
 #include "IMG.h"
+#include "iostream"
+
+#define WINDOW_FAC 4
+
+#define FRAME_WIDTH 200
 
 #define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
+#define WINDOW_HEIGHT 800
 #define WINDOW_SIZE (WINDOW_WIDTH * WINDOW_HEIGHT)
 
 #define WHITE 0xFFFFFFFF
@@ -21,12 +27,15 @@ class Window
 private:
     /* data */
 public:
+    IMG Font;
     struct mfb_window *window;
     uint32_t* buffer;
     int state;
+    bool xScrolling = false, yScrolling = false;
     Window(/* args */);
     void SetState();
     int GetState();
+    void SetScrolling(bool xScrolling, bool yScrolling);
     void DrawPXL(int x, int y, uint32_t color);
     void DrawHorizontalLine(int length, int x, int y, uint32_t color);
     void DrawVerticalLine(int length, int x, int y, uint32_t color);
@@ -38,12 +47,17 @@ public:
     void DrawZoomedIMG(IMG image, int posX, int posY, float zoomFactor);
     void DrawZoomedAndRotatedIMG(IMG image, int posX, int posY, float zoomFactor, float rotationAngle);
     IMG ZoomedIMG(IMG image, float zoomFactor);
+    void DrawLetter(char letter, int posX, int posY);
+    void DrawText(std::string text, int x, int y);
+    void resize_bitmap(uint32_t* dest, int dest_sx, int dest_sy, uint32_t* src, int src_sx, int src_sy);
 };
 
 Window::Window(/* args */)
 {
     window = mfb_open_ex("Lé PXL c rigolo", WINDOW_WIDTH, WINDOW_HEIGHT, WF_RESIZABLE);
     buffer = (uint32_t *) malloc(WINDOW_SIZE * 4);
+    IMG img("ressources/font_map.png");
+    Font = img;
 }
 void Window::SetState(){
     state = mfb_update_ex(window, buffer, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -51,19 +65,55 @@ void Window::SetState(){
 int Window::GetState(){
     return state;
 }
+void Window::SetScrolling(bool x, bool y){
+    xScrolling = x;
+    yScrolling = y;
+}
 void Window::DrawPXL(int x, int y, uint32_t color)
 {
-    // while (x >= WINDOW_WIDTH)
-    //     x -= WINDOW_WIDTH;
-    // while (y >= WINDOW_HEIGHT)
-    //     y -= WINDOW_HEIGHT;
-    // while (x < 0)
-    //     x += WINDOW_WIDTH;
-    // while (y < 0)
-    //     y += WINDOW_HEIGHT;
+    if (xScrolling)
+    {
+        while (x >= WINDOW_WIDTH)
+            x -= WINDOW_WIDTH;
+        while (x < 0)
+            x += WINDOW_WIDTH;
+    }
+    else
+    {
+        if (x >= WINDOW_WIDTH || x < 0)
+            return;
+    }
+    if (yScrolling)
+    {
+        while (y >= WINDOW_HEIGHT)
+            y -= WINDOW_HEIGHT;
 
-    if (x <= WINDOW_WIDTH && y <= WINDOW_HEIGHT && x >= 0 && y >= 0)
-        buffer[y * WINDOW_WIDTH + x] = color;
+        while (y < 0)
+            y += WINDOW_HEIGHT;
+    }
+    else
+    {
+        if (y >= WINDOW_HEIGHT || y < 0)
+            return;
+    }
+
+    int pixel_index = y * WINDOW_WIDTH + x;
+    uint32_t dest_color = buffer[pixel_index];
+
+    float src_alpha = ((uint8_t) (color >> 24)) / 256.f;
+    uint8_t src_r = (uint8_t) (color >> 16);
+    uint8_t src_g = (uint8_t) (color >> 8);
+    uint8_t src_b = (uint8_t) (color);
+
+    uint8_t dest_r = (uint8_t) (dest_color >> 16);
+    uint8_t dest_g = (uint8_t) (dest_color >> 8);
+    uint8_t dest_b = (uint8_t) (dest_color);
+
+    uint8_t final_r = (uint8_t) ((src_r * src_alpha + dest_r * (1.f-src_alpha)));
+    uint8_t final_g = (uint8_t) ((src_g * src_alpha + dest_g * (1.f-src_alpha))); 
+    uint8_t final_b = (uint8_t) ((src_b * src_alpha + dest_b * (1.f-src_alpha))); 
+
+    buffer[pixel_index] = MFB_RGB(final_r, final_g, final_b);
 }
 void Window::DrawHorizontalLine(int length, int x, int y, uint32_t color)
 {
@@ -106,13 +156,51 @@ void Window::DrawIMG(IMG image, int posX, int posY) {
         }
     }
 }
+void Window::DrawLetter(char letter, int posX, int posY) {
+    int startX = 0, startY = 0;
+    if (letter >= '!')
+    {
+        startX = 0 + (letter - '!') * 7;
+        startY = 22;
+    }
+    if (letter >= 'A')
+    {
+        startX = 0 + (letter - 'A') * 7;
+        startY = 0;
+    }
+    if (letter >= 'a')
+    {
+        startX = 0 + (letter - 'a') * 7;
+        startY = 12;
+    }
+    if (letter == ' ')
+    {
+        startX = 0;
+        startY = 50;
+    }
+
+    for (int y = startY; y < startY + 9; y++) {
+        for (int x = startX; x < startX + 7; x++) {
+            int idx = (y * Font.width + x) * 4;
+            uint32_t pixelColor = MFB_ARGB( Font.img[idx+3],Font.img[idx],
+                                            Font.img[idx+1], Font.img[idx+2] );
+            DrawPXL(posX + x - startX,posY + y - startY, pixelColor);
+        }
+    }
+}
 void Window::DrawWholeWindow(uint32_t color)
 {
-    memset(buffer, color, WINDOW_SIZE*4);
+    for (int i = 0; i < WINDOW_SIZE; i++)
+    {
+
+            buffer[i] = color;
+        
+    }
+    
 }
 void Window::DrawRotatedIMG(IMG image, int posX, int posY, float rotationAngle, PivotType pivotType) {
     int idx = 0;
-    
+
     float cosAngle = cos(rotationAngle);
     float sinAngle = sin(rotationAngle);
 
@@ -135,15 +223,18 @@ void Window::DrawRotatedIMG(IMG image, int posX, int posY, float rotationAngle, 
             int relativeX = x - pivotX;
             int relativeY = y - pivotY;
 
-            int rotatedX = static_cast<int>(cosAngle * relativeX - sinAngle * relativeY) + pivotX;
-            int rotatedY = static_cast<int>(sinAngle * relativeX + cosAngle * relativeY) + pivotY;
+            float rotatedXFloat = cosAngle * relativeX - sinAngle * relativeY + pivotX + posX;
+            float rotatedYFloat = sinAngle * relativeX + cosAngle * relativeY + pivotY + posY;
 
-            int targetX = rotatedX + posX;
-            int targetY = rotatedY + posY;
+            int targetX = static_cast<int>(rotatedXFloat);
+            int targetY = static_cast<int>(rotatedYFloat);
 
             if (targetX >= 0 && targetX < WINDOW_WIDTH && targetY >= 0 && targetY < WINDOW_HEIGHT) {
-                uint32_t pixelColor = (image.img[idx + 3] << 24 | image.img[idx] << 16 | image.img[idx + 1] << 8 | image.img[idx + 2]);
-                DrawPXL(targetX, targetY, pixelColor);
+                uint8_t alpha = image.img[idx + 3];
+                if (alpha != 0) {
+                    uint32_t pixelColor = (alpha << 24 | image.img[idx] << 16 | image.img[idx + 1] << 8 | image.img[idx + 2]);
+                    DrawPXL(targetX, targetY, pixelColor);
+                }
             }
             idx += 4;
         }
@@ -194,4 +285,22 @@ IMG Window::ZoomedIMG(IMG image, float zoomFactor) {
 
     return zoomedImage;
 }
- 
+void Window::DrawText(std::string text, int x, int y){
+    int posX = 0 - text.size() / 2 * 7;
+
+    for (auto letter : text)
+    {
+        DrawLetter(letter,x + posX,y);
+        posX += 7;
+    }
+}
+void Window::resize_bitmap(uint32_t* dest, int dest_sx, int dest_sy, uint32_t* src, int src_sx, int src_sy)
+{
+    for (int y = 0; y < dest_sy; y++) {
+        for (int x = 0; x < dest_sx; x++) {
+            int src_x = x * src_sx / dest_sx;
+            int src_y = y * src_sy / dest_sy;
+            dest[y*dest_sx + x] = src[src_y*src_sx + src_x];
+        }
+    }
+}
