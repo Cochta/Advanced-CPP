@@ -33,30 +33,19 @@ int main(){
 
     Window myWindow = Window();
     mfb_set_keyboard_callback(myWindow.window, OnKeyboardEvent);
-#pragma region 
-    // IMG beer("ressources/Beer.png");
-    // IMG rat("ressources/Rat.png");
-    // IMG heart("ressources/Heart.png");
-    // IMG banane("ressources/Banane.png");
-
-    // float rotationFactor = 0;
-    // float zoomFactor = 3;
-
-    // float maxZoom = 10;
-    // float minZoom = 2;
-
-    // bool zoom = true;
-#pragma endregion
 
     Player player;
     int fireRate = player.fireRate+1;
-    int enemySpawnRate = 30;
+    int enemySpawnRate = 45;
     int enemySpawn = enemySpawnRate;
     IMG font("ressources/font_map.png");
     IMG rat("ressources/Rat.png");
+    IMG heart("ressources/Heart.png");
     Enemy enemies[100];
     float enemyScale = 2.5f;
     int enemyCounter = 0;
+    int score = 0;
+    int HP = 5;
     do {
         if (IsKeyDown(KB_KEY_ESCAPE))
             break;
@@ -84,6 +73,10 @@ int main(){
                 player.x -= 5 ;
             if ((IsKeyDown(KB_KEY_D)|| IsKeyDown(KB_KEY_RIGHT))&& player.x + player.img.width*player.Scale < WINDOW_WIDTH)
                 player.x += 5 ;
+            if ((IsKeyDown(KB_KEY_W) || IsKeyDown(KB_KEY_UP)) && player.y > 0)
+                player.y -= 5 ;
+            if ((IsKeyDown(KB_KEY_S)|| IsKeyDown(KB_KEY_DOWN))&& player.y + player.img.height*player.Scale < WINDOW_HEIGHT)
+                player.y += 5 ;
             if (WasKeyJustPressed(KB_KEY_SPACE) && fireRate >= player.fireRate)
             {
                 player.SpawnBullet(player.x,player.y);
@@ -92,7 +85,7 @@ int main(){
             enemySpawn++;
             if (enemySpawn >= enemySpawnRate && enemyCounter < 100)
             {
-                enemies[enemyCounter] = Enemy(rand() % WINDOW_WIDTH-rat.width * enemyScale,-100,rat, enemyScale);
+                enemies[enemyCounter] = Enemy(rand() % WINDOW_WIDTH-rat.width * enemyScale/2,-100,rat, enemyScale);
                 enemySpawn = 0;
                 enemyCounter++;
             }
@@ -109,6 +102,7 @@ int main(){
 
                         enemies[i] = enemies[enemyCounter-1];
                         enemyCounter--;
+                        score += 100;
                         
                         break;
                     }
@@ -118,45 +112,33 @@ int main(){
                 {
                     enemies[i] = enemies[enemyCounter-1];
                     enemyCounter--;
+                    HP -= 1;
+                    if (HP <= 0)
+                    {
+                        game = false;
+                    }
                 }
-                
                 enemies[i].Draw(myWindow);
             }
+            myWindow.DrawFullRect(WINDOW_WIDTH, 50, 0,0, GREEN);
+            myWindow.DrawZoomedIMG(heart, 0,0, 1.6f);
+            myWindow.DrawText("= " + std::to_string(HP) , 32*2,20);
+            myWindow.DrawText("score = " + std::to_string(score) , WINDOW_WIDTH / 2,20);
             player.Draw(myWindow);
         }
-#pragma region 
-        // for (int i = -1; i < WINDOW_WIDTH / rat.width / zoomFactor + 1; i++)
-        // {
-        //     for (int j = -1; j < WINDOW_HEIGHT / rat.height / zoomFactor + 1; j++)
-        //     {
-        //         myWindow.DrawRotatedIMG(myWindow.ZoomedIMG(beer, zoomFactor),
-        //         rat.width * i * zoomFactor, rat.height * j * zoomFactor, rotationFactor, PivotType::TopLeft);
-        //     }
-        // }
-        
-        // myWindow.DrawIMG(beer, 100, 100);
-        // myWindow.DrawRotatedIMG(rat, 200, 200, 1.5f);
-        // myWindow.DrawZoomedIMG(heart, 300, 300, 7.2f);
-
-        // myWindow.DrawRotatedIMG(myWindow.ZoomedIMG(rat, 7.5f), 400,200, 1.5f+ x);
-        // myWindow.DrawIMG(myWindow.ZoomedIMG(rat, 7.5f), 100, 100);
-
-        // myWindow.DrawRectShape(400,200,0+x,20,RED);
-        // myWindow.DrawFullRect(100,400,500,300+x, GREEN);
-        // myWindow.DrawRectShape(WINDOW_WIDTH,WINDOW_HEIGHT,0,0,BLACK);
-        
-        // if (zoomFactor >= maxZoom)
-        //     zoom = false;
-        // else if (zoomFactor <= minZoom)
-        //     zoom = true;
-        
-        // if (zoom)
-        //     zoomFactor +=0.5f;
-        // else
-        //     zoomFactor -=0.5f;
-
-        // rotationFactor -= 0.1f;
-#pragma endregion
+        else // GAME OVER
+        {
+            myWindow.DrawFullRect(WINDOW_WIDTH, 150, 0,WINDOW_HEIGHT/2-75, GREEN);
+            myWindow.DrawText("! GAME OVER !", WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - 15);
+            myWindow.DrawText("score = " + std::to_string(score), WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+            myWindow.DrawText("Press ENTER to play again", WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2+15);
+            if (IsKeyDown(KB_KEY_ENTER))
+            {
+                game = true;
+                score = 0;
+                HP = 5;
+            }
+        }
 
         myWindow.SetState();
 
