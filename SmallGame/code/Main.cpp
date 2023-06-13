@@ -238,7 +238,7 @@ bool grounded = false;
 
 int main()
 {
-    PVZ.Amp = 0;
+    PVZ.Amp = 1;
     // Clip musicClip = LoadSoundClip("ressources/Olive.wav");
     // music.Amp = 1;
     // music.clip = &musicClip;
@@ -396,6 +396,16 @@ int main()
                                 playerY = LVLplayerY;
                             }
                         }
+                        else if (tiles[y * 16 + x] == 5)
+                        {
+                            if (playerY + 30 + FallingSpeed > y * TILE_PX && playerY < y * TILE_PX + TILE_PX &&
+                                playerX + 30 > x * TILE_PX && playerX < x * TILE_PX + TILE_PX)
+                            {
+                                game = false;
+                                // selection = true;
+                                menu = true;
+                            }
+                        }
                     }
                 }
 
@@ -424,6 +434,16 @@ int main()
                             {
                                 playerX = LVLplayerX;
                                 playerY = LVLplayerY;
+                            }
+                        }
+                        else if (tiles[y * 16 + x] == 5)
+                        {
+                            if (playerY - jumpspeed < y * TILE_PX + TILE_PX && playerY + 30 > y * TILE_PX &&
+                                playerX + 30 > x * TILE_PX && playerX < x * TILE_PX + TILE_PX)
+                            {
+                                game = false;
+                                // selection = true;
+                                menu = true;
                             }
                         }
                     }
@@ -455,6 +475,16 @@ int main()
                                 playerY = LVLplayerY;
                             }
                         }
+                        else if (tiles[y * 16 + x] == 5)
+                        {
+                            if (playerX + 30 + movespeed > x * TILE_PX && playerX < x * TILE_PX + TILE_PX &&
+                                playerY + 30 > y * TILE_PX && playerY < y * TILE_PX + TILE_PX)
+                            {
+                                game = false;
+                                // selection = true;
+                                menu = true;
+                            }
+                        }
                     }
                 }
                 playerX += movespeed;
@@ -481,6 +511,16 @@ int main()
                                 {
                                     playerX = LVLplayerX;
                                     playerY = LVLplayerY;
+                                }
+                            }
+                            else if (tiles[y * 16 + x] == 5)
+                            {
+                                if (playerX - movespeed < x * TILE_PX + TILE_PX && playerX + 30 > x * TILE_PX &&
+                                    playerY + 30 > y * TILE_PX && playerY < y * TILE_PX + TILE_PX)
+                                {
+                                    game = false;
+                                    // selection = true;
+                                    menu = true;
                                 }
                             }
                         }
@@ -518,10 +558,13 @@ int main()
                     {
                         myWindow.DrawFullRect(TILE_PX, TILE_PX, x * TILE_PX, y * TILE_PX, BLACK);
                     }
+                    else if (type == Tiles::Goal)
+                    {
+                        myWindow.DrawFullRect(TILE_PX, TILE_PX, x * TILE_PX, y * TILE_PX, 0xFFFD63FF);
+                    }
                 }
             }
             myWindow.DrawFullRect(30, 30, playerX, playerY, WHITE);
-            myWindow.DrawFullRect(30, 30, goalX * TILE_PX + 10, goalY * TILE_PX + 10, 0xFFFD63FF);
         }
         else if (editor)
         {
