@@ -2,6 +2,10 @@
 #include "MiniFB.h"
 #include "IMG.h"
 #include "iostream"
+#define SOKOL_IMPL
+#include "sokol_audio.h"
+#define SOKOL_LOG_IMPL
+#include "sokol_log.h"
 
 #define WINDOW_FAC 4
 
@@ -54,10 +58,9 @@ public:
 
 Window::Window(/* args */)
 {
-    window = mfb_open_ex("Lé PXL c rigolo", WINDOW_WIDTH, WINDOW_HEIGHT, WF_RESIZABLE);
+    window = mfb_open_ex("Game", WINDOW_WIDTH, WINDOW_HEIGHT, WF_RESIZABLE);
     buffer = (uint32_t *) malloc(WINDOW_SIZE * 4);
-    IMG img("ressources/font_map.png");
-    Font = img;
+    Font = ZoomedIMG(IMG("ressources/font_map.png"), 3);
 }
 void Window::SetState(){
     state = mfb_update_ex(window, buffer, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -158,29 +161,30 @@ void Window::DrawIMG(IMG image, int posX, int posY) {
 }
 void Window::DrawLetter(char letter, int posX, int posY) {
     int startX = 0, startY = 0;
+
+    int zoom = 3;
     if (letter >= '!')
     {
-        startX = 0 + (letter - '!') * 7;
-        startY = 22;
+        startX = 0 + (letter - '!') * 7 * zoom;
+        startY = 22 * zoom;
     }
     if (letter >= 'A')
     {
-        startX = 0 + (letter - 'A') * 7;
+        startX = 0 + (letter - 'A') * 7 * zoom;
         startY = 0;
     }
     if (letter >= 'a')
     {
-        startX = 0 + (letter - 'a') * 7;
-        startY = 12;
+        startX = 0 + (letter - 'a') * 7 * zoom;
+        startY = 12 * zoom;
     }
     if (letter == ' ')
     {
         startX = 0;
-        startY = 50;
+        startY = 50 * zoom;
     }
-
-    for (int y = startY; y < startY + 9; y++) {
-        for (int x = startX; x < startX + 7; x++) {
+    for (int y = startY; y < startY + 9 * zoom; y++) {
+        for (int x = startX; x < startX + 7 * zoom; x++) {
             int idx = (y * Font.width + x) * 4;
             uint32_t pixelColor = MFB_ARGB( Font.img[idx+3],Font.img[idx],
                                             Font.img[idx+1], Font.img[idx+2] );
@@ -286,12 +290,13 @@ IMG Window::ZoomedIMG(IMG image, float zoomFactor) {
     return zoomedImage;
 }
 void Window::DrawText(std::string text, int x, int y){
-    int posX = 0 - text.size() / 2 * 7;
+    int zoom = 3;
+    int posX = 0 - text.size() / 2 * 7 * zoom;
 
     for (auto letter : text)
     {
         DrawLetter(letter,x + posX,y);
-        posX += 7;
+        posX += 7 * zoom;
     }
 }
 void Window::resize_bitmap(uint32_t* dest, int dest_sx, int dest_sy, uint32_t* src, int src_sx, int src_sy)

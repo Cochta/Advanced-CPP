@@ -16,6 +16,7 @@ public:
     void Draw(Window window);
     void SpawnBullet(int x, int y);
     void DestroyBullet(int index);
+    void Clear();
 };
 
 Player::Player(/* args */)
@@ -48,4 +49,8 @@ void Player::SpawnBullet(int x, int y){
 void Player::DestroyBullet(int index){
     bullets[index] = bullets[bulletCount-1];
     bulletCount--;
+}
+void Player::Clear(){
+    
+    
 }
