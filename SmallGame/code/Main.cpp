@@ -9,6 +9,7 @@
 #include "GSound.h"
 #include <filesystem>
 #include <fstream>
+#include <microui.h>
 
 #define ARR_LEN(arr) ((int)(sizeof(arr) / sizeof(*arr)))
 #define MAX(a, b) ((a > b) ? a : b)
@@ -100,7 +101,7 @@ void OnMouseButton(struct mfb_window *window, mfb_mouse_button button, mfb_key_m
     mouseButtonState[button] = isPressed;
 }
 
-GSound PVZ(0, 0.2f, false);
+GSound PVZ(0, 0.1f, false);
 // GSound music(0, 0.2f, false);
 GSound shoot(350.0f, 0.5f, true);
 GSound kill(160.0f, 1, true);
@@ -351,8 +352,16 @@ int main()
 
     int jumpTimer = 30;
     FrameAllocInit();
+
+    // mu_Context *ctx = (mu_Context *)(sizeof(mu_Context));
+    // mu_init(ctx);
+
     do
     {
+        //mu_begin(ctx);
+        //mu_input_mousemove(ctx, mouseX, mouseY);
+
+
 #ifdef __EMSCRIPTEN__
         double now_time = mfb_timer_now(webTimer);
         double delta_time = now_time - last_rendered_frame_time;
