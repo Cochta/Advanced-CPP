@@ -8,7 +8,7 @@
 #include "math.h"
 #include "GSound.h"
 #include <filesystem>
-// #include <unordered_map>
+#include <fstream>
 
 #define ARR_LEN(arr) ((int)(sizeof(arr) / sizeof(*arr)))
 #define MAX(a, b) ((a > b) ? a : b)
@@ -20,6 +20,11 @@
 
 #define TILE_PX 50
 
+#ifdef __EMSCRIPTEN__
+mfb_timer *webTimer = mfb_timer_create();
+double last_rendered_frame_time = -1000;
+#endif
+
 enum Tiles
 {
     Empty = 0,
@@ -29,11 +34,17 @@ enum Tiles
     Player = 4,
     Goal = 5
 };
-
 enum Mod
 {
     Save,
     Load
+};
+enum Direction
+{
+    Up,
+    Down,
+    Left,
+    Right,
 };
 
 bool keys_state[KB_KEY_LAST + 1];
@@ -185,13 +196,13 @@ void SaveLevel()
     ser.bufferCapacity = 16 * 16 * 4;
     ser.buffer = (uint8_t *)malloc(ser.bufferCapacity);
     SerializeLevel(&ser);
-    FILE *f = fopen("levels/Test.lvl", "wb");
+    FILE *f = fopen("levels/User.lvl", "wb");
     fwrite(ser.buffer, ser.bufferUsed, 1, f);
     fclose(f);
 }
-void LoadLevel()
+void LoadLevel(const char *fileName)
 {
-    LoadedFile file = LoadFile("levels/Test.lvl");
+    LoadedFile file = LoadFile(fileName);
     Serializer ser = {};
     ser.mod = Mod::Load;
     ser.buffer = file.data;
@@ -234,7 +245,82 @@ int LVLplayerY;
 int goalX;
 int goalY;
 
+bool menu = true;
+bool selection = false;
+bool game = false;
+bool editor = false;
+
 bool grounded = false;
+
+void HandleCollision(int x, int y, float &speed, Direction dir)
+{
+    if (tiles[y * 16 + x] == 1 || tiles[y * 16 + x] == 3)
+    {
+        if (dir == Down || dir == Up)
+        {
+            playerY = y * TILE_PX + (dir == Down ? -30 : TILE_PX);
+        }
+        else
+        {
+            playerX = x * TILE_PX + (dir == Right ? -30 : TILE_PX);
+        }
+
+        speed = 0;
+        if (dir == Down)
+        {
+            grounded = true;
+        }
+    }
+    else if (tiles[y * 16 + x] == 2)
+    {
+        playerX = LVLplayerX;
+        playerY = LVLplayerY;
+        damage.Amp = 1;
+    }
+    else if (tiles[y * 16 + x] == 5)
+    {
+        // selection = true;
+        game = false;
+        selection = true;
+        shoot.Amp = 1;
+    }
+    if (speed > 0 && dir == Down)
+    {
+        grounded = false;
+    }
+}
+
+float jumpspeed = 13;
+float fallingSpeed = 8;
+
+uint8_t *frameAllocMemory;
+size_t frameAllocUsed = 0;
+size_t frameAllocCapacity = 10000;
+
+void FrameAllocInit()
+{
+    frameAllocMemory = (uint8_t *)malloc(frameAllocCapacity);
+}
+void *FrameAlloc(size_t size)
+{
+    if (frameAllocUsed + size > frameAllocCapacity)
+        exit(1);
+
+    uint8_t *allocation = frameAllocMemory + frameAllocUsed;
+    frameAllocUsed += size;
+    return allocation;
+}
+void FrameAllocTick()
+{
+    frameAllocUsed = 0;
+}
+char *GetScoreStr(int score)
+{
+    // char *buffer = (char *)malloc(100);
+    char *buffer = (char *)FrameAlloc(100);
+    snprintf(buffer, 100, "score: %i", score);
+    return buffer;
+}
 
 int main()
 {
@@ -242,10 +328,6 @@ int main()
     // Clip musicClip = LoadSoundClip("ressources/Olive.wav");
     // music.Amp = 1;
     // music.clip = &musicClip;
-    bool menu = true;
-    bool selection = false;
-    bool game = false;
-    bool editor = false;
 
     bool gotPaths = false;
 
@@ -268,8 +350,22 @@ int main()
     int timer = 0;
 
     int jumpTimer = 30;
+    FrameAllocInit();
     do
     {
+#ifdef __EMSCRIPTEN__
+        double now_time = mfb_timer_now(webTimer);
+        double delta_time = now_time - last_rendered_frame_time;
+        double target_delta_time = 1.f / 60.f;
+        if (delta_time < target_delta_time)
+        {
+            mfb_wait_sync(myWindow.window);
+            continue;
+        }
+        last_rendered_frame_time = now_time;
+#else
+        mfb_set_target_fps(60);
+#endif
         if (IsKeyDown(KB_KEY_ESCAPE))
             break;
         timer++;
@@ -299,29 +395,8 @@ int main()
                 selectcolor = GREEN;
                 if (WasMouseJustReleased(MOUSE_BTN_1))
                 {
-                    LoadLevel();
-                    for (int y = 0; y < 16; y++)
-                    {
-                        for (int x = 0; x < 16; x++)
-                        {
-                            if (tiles[y * 16 + x] == Tiles::Goal)
-                            {
-                                goalX = x;
-                                goalY = y;
-                            }
-                            if (tiles[y * 16 + x] == Tiles::Player)
-                            {
-                                playerX = x * TILE_PX + 10;
-                                playerY = y * TILE_PX + 10;
-                                LVLplayerX = playerX;
-                                LVLplayerY = playerY;
-                            }
-                        }
-                    }
                     menu = false;
-                    game = true;
-                    editor = false;
-                    selection = false;
+                    selection = true;
                 }
             }
 
@@ -353,137 +428,74 @@ int main()
             myWindow.DrawFullRect(WINDOW_WIDTH, 100, 0, 500, editorcolor);
             myWindow.DrawText("level Editor", WINDOW_WIDTH / 2, 540);
         }
-        // else if (selection)
-        // {
-        //     if (!gotPaths)
-        //     {
-        //         const char* directory_path = "levels";
-        //         for (const auto &file : std::filesystem::directory_iterator(directory_path))
-        //         {
-        //             std::string name = file.path();
-        //             printf(name.substr(8,5));
-        //         }
-        //         gotPaths = true;
-        //     }
-        // }
+        else if (selection)
+        {
+            const char *directory_path = "levels";
+            int i = 0;
+            int j = 0;
+            for (const auto &file : std::filesystem::directory_iterator(directory_path))
+            {
+                std::string name = file.path().string();
+                const char *path = name.c_str();
+                std::string cutName = name.substr(7);
+                cutName = cutName.substr(0, cutName.length() - 4);
+                // mousclickdetection
+                if (i == 6)
+                {
+                    i = 0;
+                    j += 1;
+                }
+                uint32_t lvlcolor = BLACK;
+                if (mouseX >= 29 + i * 29 + 100 * i && mouseX <= 29 + i * 29 + 100 * i + 100 &&
+                    mouseY >= 29 + j * 29 + 100 * j && mouseY <= 29 + j * 29 + 100 * j + 100)
+                {
+                    lvlcolor = GREEN;
+                    if (WasMouseJustReleased(MOUSE_BTN_1))
+                    {
+                        LoadLevel(path);
+                        for (int y = 0; y < 16; y++)
+                        {
+                            for (int x = 0; x < 16; x++)
+                            {
+                                if (tiles[y * 16 + x] == Tiles::Goal)
+                                {
+                                    goalX = x;
+                                    goalY = y;
+                                }
+                                if (tiles[y * 16 + x] == Tiles::Player)
+                                {
+                                    playerX = x * TILE_PX + 10;
+                                    playerY = y * TILE_PX + 10;
+                                    LVLplayerX = playerX;
+                                    LVLplayerY = playerY;
+                                }
+                            }
+                        }
+                        game = true;
+                        selection = false;
+                    }
+                }
+
+                myWindow.DrawFullRect(100, 100, 29 + i * 29 + 100 * i, 29 + j * 29 + 100 * j, lvlcolor);
+                myWindow.DrawText(cutName, 29 + 42 + i * 29 + 100 * i, 29 + 34 + j * 29 + 100 * j);
+                i++;
+            }
+        }
         else if (game)
         {
             jumpTimer++;
 
-            if (jumpTimer >= 13)
-            {
-                int FallingSpeed = 4;
-                for (int y = 0; y < 16; y++)
-                {
-                    for (int x = 0; x < 16; x++)
-                    {
-                        if (tiles[y * 16 + x] == 1 || tiles[y * 16 + x] == 3)
-                        {
-                            if (playerY + 30 + FallingSpeed > y * TILE_PX && playerY < y * TILE_PX + TILE_PX &&
-                                playerX + 30 > x * TILE_PX && playerX < x * TILE_PX + TILE_PX)
-                            {
-                                playerY = y * TILE_PX - 30;
-                                FallingSpeed = 0;
-                                grounded = true;
-                            }
-                        }
-                        else if (tiles[y * 16 + x] == 2)
-                        {
-                            if (playerY + 30 + FallingSpeed > y * TILE_PX && playerY < y * TILE_PX + TILE_PX &&
-                                playerX + 30 > x * TILE_PX && playerX < x * TILE_PX + TILE_PX)
-                            {
-                                playerX = LVLplayerX;
-                                playerY = LVLplayerY;
-                            }
-                        }
-                        else if (tiles[y * 16 + x] == 5)
-                        {
-                            if (playerY + 30 + FallingSpeed > y * TILE_PX && playerY < y * TILE_PX + TILE_PX &&
-                                playerX + 30 > x * TILE_PX && playerX < x * TILE_PX + TILE_PX)
-                            {
-                                game = false;
-                                // selection = true;
-                                menu = true;
-                            }
-                        }
-                    }
-                }
-
-                playerY += FallingSpeed;
-            }
-            else
-            {
-                int jumpspeed = 10;
-                for (int y = 0; y < 16; y++)
-                {
-                    for (int x = 0; x < 16; x++)
-                    {
-                        if (tiles[y * 16 + x] == 1 || tiles[y * 16 + x] == 3)
-                        {
-                            if (playerY - jumpspeed < y * TILE_PX + TILE_PX && playerY + 30 > y * TILE_PX &&
-                                playerX + 30 > x * TILE_PX && playerX < x * TILE_PX + TILE_PX)
-                            {
-                                playerY = y * TILE_PX + TILE_PX;
-                                jumpspeed = 0;
-                            }
-                        }
-                        else if (tiles[y * 16 + x] == 2)
-                        {
-                            if (playerY - jumpspeed < y * TILE_PX + TILE_PX && playerY + 30 > y * TILE_PX &&
-                                playerX + 30 > x * TILE_PX && playerX < x * TILE_PX + TILE_PX)
-                            {
-                                playerX = LVLplayerX;
-                                playerY = LVLplayerY;
-                            }
-                        }
-                        else if (tiles[y * 16 + x] == 5)
-                        {
-                            if (playerY - jumpspeed < y * TILE_PX + TILE_PX && playerY + 30 > y * TILE_PX &&
-                                playerX + 30 > x * TILE_PX && playerX < x * TILE_PX + TILE_PX)
-                            {
-                                game = false;
-                                // selection = true;
-                                menu = true;
-                            }
-                        }
-                    }
-                }
-                playerY -= jumpspeed;
-            }
             if (IsKeyDown(KB_KEY_D))
             {
-                int movespeed = 5;
+                float movespeed = 5;
                 for (int y = 0; y < 16; y++)
                 {
                     for (int x = 0; x < 16; x++)
                     {
-                        if (tiles[y * 16 + x] == 1 || tiles[y * 16 + x] == 3)
+                        if (playerX + 30 + movespeed > x * TILE_PX && playerX < x * TILE_PX + TILE_PX &&
+                            playerY + 30 > y * TILE_PX && playerY < y * TILE_PX + TILE_PX)
                         {
-                            if (playerX + 30 + movespeed > x * TILE_PX && playerX < x * TILE_PX + TILE_PX &&
-                                playerY + 30 > y * TILE_PX && playerY < y * TILE_PX + TILE_PX)
-                            {
-                                playerX = x * TILE_PX - 30;
-                                movespeed = 0;
-                            }
-                        }
-                        else if (tiles[y * 16 + x] == 2)
-                        {
-                            if (playerX + 30 + movespeed > x * TILE_PX && playerX < x * TILE_PX + TILE_PX &&
-                                playerY + 30 > y * TILE_PX && playerY < y * TILE_PX + TILE_PX)
-                            {
-                                playerX = LVLplayerX;
-                                playerY = LVLplayerY;
-                            }
-                        }
-                        else if (tiles[y * 16 + x] == 5)
-                        {
-                            if (playerX + 30 + movespeed > x * TILE_PX && playerX < x * TILE_PX + TILE_PX &&
-                                playerY + 30 > y * TILE_PX && playerY < y * TILE_PX + TILE_PX)
-                            {
-                                game = false;
-                                // selection = true;
-                                menu = true;
-                            }
+                            HandleCollision(x, y, movespeed, Right);
                         }
                     }
                 }
@@ -491,47 +503,70 @@ int main()
             }
             if (IsKeyDown(KB_KEY_A))
             {
-                int movespeed = 5;
+                float movespeed = 5;
                 for (int y = 0; y < 16; y++)
                 {
                     for (int x = 0; x < 16; x++)
                     {
-                        if (tiles[y * 16 + x] == 1 || tiles[y * 16 + x] == 3)
+                        if (playerX - movespeed < x * TILE_PX + TILE_PX && playerX + 30 > x * TILE_PX &&
+                            playerY + 30 > y * TILE_PX && playerY < y * TILE_PX + TILE_PX)
                         {
-                            if (playerX - movespeed < x * TILE_PX + TILE_PX && playerX + 30 > x * TILE_PX &&
-                                playerY + 30 > y * TILE_PX && playerY < y * TILE_PX + TILE_PX)
-                            {
-                                playerX = x * TILE_PX + TILE_PX;
-                                movespeed = 0;
-                            }
-                            else if (tiles[y * 16 + x] == 2)
-                            {
-                                if (playerX - movespeed < x * TILE_PX + TILE_PX && playerX + 30 > x * TILE_PX &&
-                                    playerY + 30 > y * TILE_PX && playerY < y * TILE_PX + TILE_PX)
-                                {
-                                    playerX = LVLplayerX;
-                                    playerY = LVLplayerY;
-                                }
-                            }
-                            else if (tiles[y * 16 + x] == 5)
-                            {
-                                if (playerX - movespeed < x * TILE_PX + TILE_PX && playerX + 30 > x * TILE_PX &&
-                                    playerY + 30 > y * TILE_PX && playerY < y * TILE_PX + TILE_PX)
-                                {
-                                    game = false;
-                                    // selection = true;
-                                    menu = true;
-                                }
-                            }
+                            HandleCollision(x, y, movespeed, Left);
                         }
                     }
                 }
                 playerX -= movespeed;
             }
+            if (jumpTimer >= 13)
+            {
+                fallingSpeed += 1;
+                for (int y = 0; y < 16; y++)
+                {
+                    for (int x = 0; x < 16; x++)
+                    {
+                        if (playerY + 30 + fallingSpeed > y * TILE_PX && playerY < y * TILE_PX &&
+                            playerX + 30 > x * TILE_PX && playerX < x * TILE_PX + TILE_PX)
+                        {
+                            HandleCollision(x, y, fallingSpeed, Down);
+                        }
+                    }
+                }
+
+                playerY += fallingSpeed;
+            }
+            else
+            {
+                if (jumpTimer == 12)
+                {
+                    fallingSpeed = 0;
+                }
+                if (WasKeyJustReleased(KB_KEY_SPACE))
+                {
+                    jumpTimer = 13;
+                }
+
+                jumpspeed -= 1;
+
+                for (int y = 0; y < 16; y++)
+                {
+                    for (int x = 0; x < 16; x++)
+                    {
+                        if (playerY - jumpspeed < y * TILE_PX + TILE_PX && playerY + 30 > y * TILE_PX &&
+                            playerX + 30 > x * TILE_PX && playerX < x * TILE_PX + TILE_PX)
+                        {
+                            HandleCollision(x, y, jumpspeed, Up);
+                        }
+                    }
+                }
+                playerY -= jumpspeed;
+            }
+
             if (WasKeyJustPressed(KB_KEY_SPACE) && jumpTimer >= 13 && grounded)
             {
+                jumpspeed = 17;
                 jumpTimer = 0;
                 grounded = false;
+                kill.Amp = 1;
             }
             if (WasKeyJustPressed(KB_KEY_BACKSPACE))
             {
@@ -564,7 +599,8 @@ int main()
                     }
                 }
             }
-            myWindow.DrawFullRect(30, 30, playerX, playerY, WHITE);
+
+            myWindow.DrawFullRect(30, 30, playerX, playerY, grounded ? 0xFFACACAC : BLUE);
         }
         else if (editor)
         {
@@ -580,7 +616,7 @@ int main()
             }
             if (WasKeyJustPressed(KB_KEY_L))
             {
-                LoadLevel();
+                LoadLevel("levels/User.lvl");
                 HistoryCommit();
             }
             if (WasKeyJustPressed(KB_KEY_Y) && IsKeyDown(KB_KEY_LEFT_CONTROL))
@@ -677,7 +713,6 @@ int main()
             if (modif && (WasKeyJustReleased(KB_KEY_1) || WasKeyJustReleased(KB_KEY_2) || WasKeyJustReleased(KB_KEY_3) || WasKeyJustReleased(KB_KEY_4) || WasKeyJustReleased(KB_KEY_5)))
             {
                 HistoryCommit();
-                printf("commit");
                 modif = false;
             }
             myWindow.DrawFullRect(40, 40, 55, WINDOW_HEIGHT - 45, 0xFF3A75C5);
@@ -697,6 +732,7 @@ int main()
         }
         TickInput();
         myWindow.SetState();
+        FrameAllocTick();
 
         if (myWindow.GetState() < 0)
         {

@@ -12,7 +12,8 @@ call C:\Users\const\OneDrive\Bureau\Empscripten\emsdk\upstream\emscripten\em++ c
     -fansi-escape-codes ^
     -sEXPORT_NAME=my_game ^
     -sASYNCIFY ^
-    --preload-file ressources ^ 
+    --preload-file ressources ^
+    --preload-file levels ^
     -sSTRICT=1 ^
     -sENVIRONMENT=web ^
     -sMODULARIZE=1 ^
@@ -24,4 +25,4 @@ call C:\Users\const\OneDrive\Bureau\Empscripten\emsdk\upstream\emscripten\em++ c
     -sEXPORTED_RUNTIME_METHODS=ccall,cwrap ^
     -sASYNCIFY ^
     --no-entry ^
-    -O3 ^
+    -O3
