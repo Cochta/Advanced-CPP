@@ -7,6 +7,8 @@
 #define SOKOL_LOG_IMPL
 #include "sokol_log.h"
 
+#include "microui.h"
+
 #define WINDOW_FAC 4
 
 #define FRAME_WIDTH 200
@@ -53,7 +55,7 @@ public:
     void DrawZoomedAndRotatedIMG(IMG image, int posX, int posY, float zoomFactor, float rotationAngle);
     IMG ZoomedIMG(IMG image, float zoomFactor);
     void DrawLetter(char letter, int posX, int posY);
-    void DrawText(std::string text, int x, int y);
+    void DrawText(std::string text, int x, int y, PivotType pivotType);
     void resize_bitmap(uint32_t *dest, int dest_sx, int dest_sy, uint32_t *src, int src_sx, int src_sy);
 };
 
@@ -312,10 +314,12 @@ IMG Window::ZoomedIMG(IMG image, float zoomFactor)
 
     return zoomedImage;
 }
-void Window::DrawText(std::string text, int x, int y)
+void Window::DrawText(std::string text, int x, int y, PivotType pivotType)
 {
     int zoom = 3;
-    int posX = 0 - text.size() / 2 * 7 * zoom;
+    int posX = 0;
+    if (pivotType == PivotType::Center)
+        posX = -text.size() / 2 * 7 * zoom;
 
     for (auto letter : text)
     {

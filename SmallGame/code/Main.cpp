@@ -9,7 +9,8 @@
 #include "GSound.h"
 #include <filesystem>
 #include <fstream>
-#include <microui.h>
+
+#define __cdecl
 
 #define ARR_LEN(arr) ((int)(sizeof(arr) / sizeof(*arr)))
 #define MAX(a, b) ((a > b) ? a : b)
@@ -253,6 +254,8 @@ bool editor = false;
 
 bool grounded = false;
 
+float value = 0;
+
 void HandleCollision(int x, int y, float &speed, Direction dir)
 {
     if (tiles[y * 16 + x] == 1 || tiles[y * 16 + x] == 3)
@@ -322,6 +325,41 @@ char *GetScoreStr(int score)
     snprintf(buffer, 100, "score: %i", score);
     return buffer;
 }
+char *Format(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    va_list args_copy;
+    va_copy(args_copy, args);
+    int size = vsnprintf(nullptr, 0, format, args_copy);
+    va_end(args_copy);
+
+    char *buffer = static_cast<char *>(FrameAlloc(size + 1));
+    if (buffer == nullptr)
+    {
+        va_end(args);
+        return nullptr;
+    }
+
+    vsnprintf(buffer, size + 1, format, args);
+
+    va_end(args);
+
+    return buffer;
+}
+
+static int text_width(mu_Font font, const char *text, int len)
+{
+    (void)font;
+    return strlen(text) * 7 * 3;
+}
+
+static int text_height(mu_Font font)
+{
+    (void)font;
+    return 9 * 3;
+}
 
 int main()
 {
@@ -341,6 +379,9 @@ int main()
     IMG rat("ressources/Rat.png");
     IMG rock("ressources/Rock.png");
     IMG heart("ressources/Heart.png");
+    IMG beer("ressources/Beer.png");
+    IMG shield("ressources/Shield.png");
+    char *iconArray[5]{"0", "x", "0", ">", "<"};
 
     saudio_desc desc = {0};
     desc.logger.func = slog_func;
@@ -353,14 +394,15 @@ int main()
     int jumpTimer = 30;
     FrameAllocInit();
 
-    // mu_Context *ctx = (mu_Context *)(sizeof(mu_Context));
-    // mu_init(ctx);
-
+    printf(Format("banane", "carot", "olive"));
+    mu_Context *ctx = (mu_Context *)malloc(sizeof(mu_Context));
+    mu_init(ctx);
+    ctx->text_width = text_width;
+    ctx->text_height = text_height;
+    // ctx->style->colors[MU_COLOR_BUTTON] = {75, 255, 75, 255};
+    int actualColor = Empty;
     do
     {
-        //mu_begin(ctx);
-        //mu_input_mousemove(ctx, mouseX, mouseY);
-
 
 #ifdef __EMSCRIPTEN__
         double now_time = mfb_timer_now(webTimer);
@@ -392,10 +434,43 @@ int main()
 
         myWindow.DrawWholeWindow(0xFF3A75C5);
 
+        mu_input_mousemove(ctx, mouseX, mouseY);
+        if (WasMouseJustPressed(MOUSE_LEFT))
+        {
+            mu_input_mousedown(ctx, mouseX, mouseY, 1);
+        }
+        if (WasMouseJustReleased(MOUSE_LEFT))
+        {
+            mu_input_mouseup(ctx, mouseX, mouseY, 1);
+        }
+
+        // mu_begin(ctx);
+        // if (mu_begin_window(ctx, "My Window", mu_rect(0, 0, 500, 500)))
+        // {
+        //     if (mu_header(ctx, "Window Info"))
+        //     {
+        //         mu_Container *win = mu_get_current_container(ctx);
+        //         char buf[64];
+        //         int a[3]{200, -1};
+        //         mu_layout_row(ctx, 2, a, 0);
+        //         mu_label(ctx, "Position:");
+        //         sprintf(buf, "%d, %d", win->rect.x, win->rect.y);
+        //         mu_label(ctx, buf);
+        //         mu_label(ctx, "Size:");
+        //         sprintf(buf, "%d, %d", win->rect.w, win->rect.h);
+        //         mu_label(ctx, buf);
+        //         mu_button(ctx, "Banane");
+        //     }
+
+        //     mu_end_window(ctx);
+        // }
+        // mu_end(ctx);
+
+#pragma region
         if (menu)
         {
             myWindow.DrawFullRect(WINDOW_WIDTH, 100, 0, 40, BLACK);
-            myWindow.DrawText("!!! PIXEL PLATEFORMER !!!", WINDOW_WIDTH / 2, 75);
+            myWindow.DrawText("!!! PIXEL PLATEFORMER !!!", WINDOW_WIDTH / 2, 75, PivotType::Center);
             uint32_t selectcolor = BLACK;
 
             if (mouseX >= 0 && mouseX <= WINDOW_WIDTH &&
@@ -410,7 +485,7 @@ int main()
             }
 
             myWindow.DrawFullRect(WINDOW_WIDTH, 100, 0, 300, selectcolor);
-            myWindow.DrawText("Select a level", WINDOW_WIDTH / 2, 340);
+            myWindow.DrawText("Select a level", WINDOW_WIDTH / 2, 340, PivotType::Center);
 
             uint32_t editorcolor = BLACK;
             if (mouseX >= 0 && mouseX <= WINDOW_WIDTH &&
@@ -435,7 +510,7 @@ int main()
             }
 
             myWindow.DrawFullRect(WINDOW_WIDTH, 100, 0, 500, editorcolor);
-            myWindow.DrawText("level Editor", WINDOW_WIDTH / 2, 540);
+            myWindow.DrawText("level Editor", WINDOW_WIDTH / 2, 540, PivotType::Center);
         }
         else if (selection)
         {
@@ -486,7 +561,7 @@ int main()
                 }
 
                 myWindow.DrawFullRect(100, 100, 29 + i * 29 + 100 * i, 29 + j * 29 + 100 * j, lvlcolor);
-                myWindow.DrawText(cutName, 29 + 42 + i * 29 + 100 * i, 29 + 34 + j * 29 + 100 * j);
+                myWindow.DrawText(cutName, 29 + 42 + i * 29 + 100 * i, 29 + 34 + j * 29 + 100 * j, PivotType::Center);
                 i++;
             }
         }
@@ -666,7 +741,11 @@ int main()
                         mouseY >= y * TILE_PX && mouseY < (y * TILE_PX) + TILE_PX)
                     {
                         myWindow.DrawFullRect(TILE_PX, TILE_PX, x * TILE_PX, y * TILE_PX, WHITE);
-
+                        if (IsMouseDown(MOUSE_LEFT))
+                        {
+                            tiles[y * 16 + x] = actualColor;
+                            modif = true;
+                        }
                         if (IsKeyDown(KB_KEY_2))
                         {
                             tiles[y * 16 + x] = Tiles::Floor;
@@ -719,25 +798,85 @@ int main()
                     }
                 }
             }
-            if (modif && (WasKeyJustReleased(KB_KEY_1) || WasKeyJustReleased(KB_KEY_2) || WasKeyJustReleased(KB_KEY_3) || WasKeyJustReleased(KB_KEY_4) || WasKeyJustReleased(KB_KEY_5)))
+            if (modif && (WasMouseJustReleased(MOUSE_LEFT) || WasKeyJustReleased(KB_KEY_1) || WasKeyJustReleased(KB_KEY_2) || WasKeyJustReleased(KB_KEY_3) || WasKeyJustReleased(KB_KEY_4) || WasKeyJustReleased(KB_KEY_5)))
             {
                 HistoryCommit();
                 modif = false;
             }
             myWindow.DrawFullRect(40, 40, 55, WINDOW_HEIGHT - 45, 0xFF3A75C5);
-            myWindow.DrawText("1", 55 + 13, WINDOW_HEIGHT - 40);
+            myWindow.DrawText("1", 55 + 13, WINDOW_HEIGHT - 40, PivotType::Center);
 
             myWindow.DrawFullRect(40, 40, 55 + 50, WINDOW_HEIGHT - 45, GREEN);
-            myWindow.DrawText("2", 55 + 13 + 50, WINDOW_HEIGHT - 40);
+            myWindow.DrawText("2", 55 + 13 + 50, WINDOW_HEIGHT - 40, PivotType::Center);
+
+            mu_begin(ctx);
+            if (mu_begin_window_ex(ctx, "", mu_rect(WINDOW_WIDTH - 65, 0, 65, 315), MU_OPT_NOTITLE | MU_OPT_NOCLOSE | MU_OPT_NORESIZE))
+            {
+                int a[1]{50};
+                char *s[6]{"1", "2", "3", "4", "5", "6"};
+
+                if (mu_header(ctx, "pipi"))
+                {
+                    /* code */
+
+                    ctx->style->colors[MU_COLOR_BUTTON] = {58, 117, 197, 255};
+                    ctx->style->colors[MU_COLOR_BUTTONHOVER] = {78, 137, 197, 255};
+                    ctx->style->colors[MU_COLOR_BUTTONFOCUS] = {98, 157, 197, 255};
+                    ;
+                    if (mu_button(ctx, ""))
+                    {
+                        actualColor = 0;
+                    }
+                }
+                // for (int i = 0; i < 6; i++)
+                // {
+                //     unsigned char c = 20 * i;
+                //     ctx->style->colors[MU_COLOR_BUTTON] = {c, c, c, 255};
+                //     if (mu_button(ctx, s[i]))
+                //     {
+                //         actualColor = i;
+                //     }
+                // }
+
+                mu_end_window(ctx);
+            }
+            mu_end(ctx);
 
             myWindow.DrawFullRect(40, 40, 55 + 50 * 2, WINDOW_HEIGHT - 45, RED);
-            myWindow.DrawText("3", 55 + 13 + 50 * 2, WINDOW_HEIGHT - 40);
+            myWindow.DrawText("3", 55 + 13 + 50 * 2, WINDOW_HEIGHT - 40, PivotType::Center);
 
             myWindow.DrawFullRect(40, 40, 55 + 50 * 3, WINDOW_HEIGHT - 45, 0xFFFD63FF);
-            myWindow.DrawText("4", 55 + 13 + 50 * 3, WINDOW_HEIGHT - 40);
+            myWindow.DrawText("4", 55 + 13 + 50 * 3, WINDOW_HEIGHT - 40, PivotType::Center);
 
             myWindow.DrawFullRect(40, 40, 55 + 50 * 4, WINDOW_HEIGHT - 45, 0xFFACACAC);
-            myWindow.DrawText("5", 55 + 13 + 50 * 4, WINDOW_HEIGHT - 40);
+            myWindow.DrawText("5", 55 + 13 + 50 * 4, WINDOW_HEIGHT - 40, PivotType::Center);
+        }
+#pragma endregion
+        /* render */
+        mu_Command *cmd = NULL;
+        while (mu_next_command(ctx, &cmd))
+        {
+            switch (cmd->type)
+            {
+            case MU_COMMAND_TEXT:
+                // r_draw_text(cmd->text.str, cmd->text.pos, cmd->text.color);
+                myWindow.DrawText(cmd->text.str, cmd->text.pos.x, cmd->text.pos.y, PivotType::TopLeft);
+                break;
+            case MU_COMMAND_RECT:
+                // r_draw_rect(cmd->rect.rect, cmd->rect.color);
+                myWindow.DrawFullRect(cmd->rect.rect.w, cmd->rect.rect.h, cmd->rect.rect.x, cmd->rect.rect.y,
+                                      MFB_ARGB(cmd->rect.color.a, cmd->rect.color.r, cmd->rect.color.g, cmd->rect.color.b));
+                break;
+            case MU_COMMAND_ICON:
+                // r_draw_icon(cmd->icon.id, cmd->icon.rect, cmd->icon.color);
+                myWindow.DrawText(iconArray[cmd->icon.id], cmd->rect.rect.x, cmd->rect.rect.y, PivotType::TopLeft);
+                break;
+            case MU_COMMAND_CLIP:
+                // r_set_clip_rect(cmd->clip.rect);
+                // myWindow.DrawRectShape(cmd->rect.rect.w, cmd->rect.rect.h, cmd->rect.rect.x, cmd->rect.rect.y,
+                //                       MFB_ARGB(cmd->rect.color.a, cmd->rect.color.r, cmd->rect.color.g, cmd->rect.color.b));
+                break;
+            }
         }
         TickInput();
         myWindow.SetState();
