@@ -394,6 +394,17 @@ void SetButtonColors(mu_Context *ctx, int number)
         break;
     }
 }
+char logbuf[64000];
+int logbuf_updated;
+static void write_log(const char *text)
+{
+    if (logbuf[0])
+    {
+        strcat(logbuf, "\n");
+    }
+    strcat(logbuf, text);
+    logbuf_updated = 1;
+}
 int main()
 {
     PVZ.Amp = 1;
@@ -468,6 +479,7 @@ int main()
         myWindow.DrawWholeWindow(0xFF3A75C5);
 
         mu_input_mousemove(ctx, mouseX, mouseY);
+        mu_input_keydown(ctx, MU_KEY_ALT);
         if (WasMouseJustPressed(MOUSE_LEFT))
         {
             mu_input_mousedown(ctx, mouseX, mouseY, 1);
@@ -852,10 +864,10 @@ int main()
             myWindow.DrawText("5", 55 + 13 + 50 * 4, WINDOW_HEIGHT - 40, PivotType::Center);
 
             mu_begin(ctx);
-            if (mu_begin_window_ex(ctx, "", mu_rect(WINDOW_WIDTH - 50, 0, 50, 315), MU_OPT_NOTITLE | MU_OPT_NOCLOSE | MU_OPT_NORESIZE | MU_OPT_NOSCROLL))
+            if (mu_begin_window(ctx, "", mu_rect(WINDOW_WIDTH - 90, 0, 90, 315)))
             {
                 int a[1]{50};
-                char *s[6]{"1", "2", "3", "4", "5", "6"};
+                char *s[6]{"1", "2", "3", "6", "4", "5"};
                 mu_Container *win = mu_get_current_container(ctx);
                 mu_layout_row(ctx, 1, nullptr, 0);
                 for (int i = 0; i < 6; i++)
@@ -866,14 +878,34 @@ int main()
                     }
 
                     SetButtonColors(ctx, i);
-                    if (mu_button_ex(ctx, s[i], 0, MU_OPT_NOTITLE | MU_OPT_EXPANDED | MU_OPT_AUTOSIZE))
+                    if (mu_button(ctx, s[i]))
                     {
                         actualColor = i;
                     }
                 }
+                // ctx->style = ;
+
+                //static char buf[128];
+                int submitted = 0;
+
+
+                // if (mu_textbox(ctx, buf, sizeof(buf)) & MU_RES_SUBMIT)
+                // {
+                //     submitted = 1;
+                // }
+                if (mu_button(ctx, "Save"))
+                {
+                    submitted = 1;
+                }
+                if (submitted)
+                {
+                    SaveLevel();;
+                    //buf[0] = '\0';
+                }
 
                 mu_end_window(ctx);
             }
+
             mu_end(ctx);
         }
 #pragma endregion
