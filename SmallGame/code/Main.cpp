@@ -360,7 +360,40 @@ static int text_height(mu_Font font)
     (void)font;
     return 9 * 3;
 }
+void SetButtonColors(mu_Context *ctx, int number)
+{
+    switch (number)
+    {
+    case 0:
+        ctx->style->colors[MU_COLOR_BUTTON] = {58, 117, 197, 255};
+        ctx->style->colors[MU_COLOR_BUTTONHOVER] = {78, 137, 197, 255};
+        ctx->style->colors[MU_COLOR_BUTTONFOCUS] = {98, 157, 197, 255};
+        break;
+    case 1:
+        ctx->style->colors[MU_COLOR_BUTTON] = {0, 255, 0, 255};
+        ctx->style->colors[MU_COLOR_BUTTONHOVER] = {20, 235, 20, 255};
+        ctx->style->colors[MU_COLOR_BUTTONFOCUS] = {40, 215, 40, 255};
+        break;
+    case 2:
+        ctx->style->colors[MU_COLOR_BUTTON] = {255, 0, 0, 255};
+        ctx->style->colors[MU_COLOR_BUTTONHOVER] = {235, 20, 20, 255};
+        ctx->style->colors[MU_COLOR_BUTTONFOCUS] = {215, 40, 40, 255};
+        break;
+    case 4:
+        ctx->style->colors[MU_COLOR_BUTTON] = {113, 113, 113, 255};
+        ctx->style->colors[MU_COLOR_BUTTONHOVER] = {133, 133, 133, 255};
+        ctx->style->colors[MU_COLOR_BUTTONFOCUS] = {153, 153, 153, 255};
+        break;
+    case 5:
+        ctx->style->colors[MU_COLOR_BUTTON] = {253, 99, 255, 255};
+        ctx->style->colors[MU_COLOR_BUTTONHOVER] = {253, 79, 235, 255};
+        ctx->style->colors[MU_COLOR_BUTTONFOCUS] = {253, 59, 215, 255};
+        break;
 
+    default:
+        break;
+    }
+}
 int main()
 {
     PVZ.Amp = 1;
@@ -809,39 +842,6 @@ int main()
             myWindow.DrawFullRect(40, 40, 55 + 50, WINDOW_HEIGHT - 45, GREEN);
             myWindow.DrawText("2", 55 + 13 + 50, WINDOW_HEIGHT - 40, PivotType::Center);
 
-            mu_begin(ctx);
-            if (mu_begin_window_ex(ctx, "", mu_rect(WINDOW_WIDTH - 65, 0, 65, 315), MU_OPT_NOTITLE | MU_OPT_NOCLOSE | MU_OPT_NORESIZE))
-            {
-                int a[1]{50};
-                char *s[6]{"1", "2", "3", "4", "5", "6"};
-
-                if (mu_header(ctx, "pipi"))
-                {
-                    /* code */
-
-                    ctx->style->colors[MU_COLOR_BUTTON] = {58, 117, 197, 255};
-                    ctx->style->colors[MU_COLOR_BUTTONHOVER] = {78, 137, 197, 255};
-                    ctx->style->colors[MU_COLOR_BUTTONFOCUS] = {98, 157, 197, 255};
-                    ;
-                    if (mu_button(ctx, ""))
-                    {
-                        actualColor = 0;
-                    }
-                }
-                // for (int i = 0; i < 6; i++)
-                // {
-                //     unsigned char c = 20 * i;
-                //     ctx->style->colors[MU_COLOR_BUTTON] = {c, c, c, 255};
-                //     if (mu_button(ctx, s[i]))
-                //     {
-                //         actualColor = i;
-                //     }
-                // }
-
-                mu_end_window(ctx);
-            }
-            mu_end(ctx);
-
             myWindow.DrawFullRect(40, 40, 55 + 50 * 2, WINDOW_HEIGHT - 45, RED);
             myWindow.DrawText("3", 55 + 13 + 50 * 2, WINDOW_HEIGHT - 40, PivotType::Center);
 
@@ -850,6 +850,31 @@ int main()
 
             myWindow.DrawFullRect(40, 40, 55 + 50 * 4, WINDOW_HEIGHT - 45, 0xFFACACAC);
             myWindow.DrawText("5", 55 + 13 + 50 * 4, WINDOW_HEIGHT - 40, PivotType::Center);
+
+            mu_begin(ctx);
+            if (mu_begin_window_ex(ctx, "", mu_rect(WINDOW_WIDTH - 50, 0, 50, 315), MU_OPT_NOTITLE | MU_OPT_NOCLOSE | MU_OPT_NORESIZE | MU_OPT_NOSCROLL))
+            {
+                int a[1]{50};
+                char *s[6]{"1", "2", "3", "4", "5", "6"};
+                mu_Container *win = mu_get_current_container(ctx);
+                mu_layout_row(ctx, 1, nullptr, 0);
+                for (int i = 0; i < 6; i++)
+                {
+                    if (i == 3)
+                    {
+                        i++;
+                    }
+
+                    SetButtonColors(ctx, i);
+                    if (mu_button_ex(ctx, s[i], 0, MU_OPT_NOTITLE | MU_OPT_EXPANDED | MU_OPT_AUTOSIZE))
+                    {
+                        actualColor = i;
+                    }
+                }
+
+                mu_end_window(ctx);
+            }
+            mu_end(ctx);
         }
 #pragma endregion
         /* render */

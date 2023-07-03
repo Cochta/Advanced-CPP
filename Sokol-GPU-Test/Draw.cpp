@@ -24,29 +24,33 @@ void AppendVertex(Vertex v)
     vertexBuffer[vertexBufferUsed++] = v.color.b;
     vertexBuffer[vertexBufferUsed++] = v.color.a;
 }
-void DrawRect(float x, float y, float w, float h, Color c, Pivot p)
+void DrawQuad(Vector2F v1, Vector2F v2, Vector2F v3, Vector2F v4, Color c)
 {
-    float z = 0.5f;
     int startIndex = vertexBufferUsed / (3 + 4);
 
+    float z = 0.5f;
+
+    AppendVertex(Vertex(v1.X, v1.Y, z, c));
+    AppendVertex(Vertex(v2.X, v2.Y, z, c));
+    AppendVertex(Vertex(v3.X, v3.Y, z, c));
+    AppendVertex(Vertex(v4.X, v4.Y, z, c));
+
+    indexBuffer[indexBufferUsed++] = startIndex;
+    indexBuffer[indexBufferUsed++] = startIndex + 1;
+    indexBuffer[indexBufferUsed++] = startIndex + 2;
+
+    indexBuffer[indexBufferUsed++] = startIndex;
+    indexBuffer[indexBufferUsed++] = startIndex + 2;
+    indexBuffer[indexBufferUsed++] = startIndex + 3;
+}
+void DrawRect(float x, float y, float w, float h, Color c, Pivot p)
+{
     if (p == Center)
     {
         x -= w / 2;
         y -= h / 2;
     }
-
-    AppendVertex(Vertex(x, y, z, c));
-    AppendVertex(Vertex(x + w, y, z, c));
-    AppendVertex(Vertex(x + w, y + h, z, c));
-    AppendVertex(Vertex(x, y + h, z, c));
-
-    indexBuffer[indexBufferUsed++] = startIndex + 0;
-    indexBuffer[indexBufferUsed++] = startIndex + 1;
-    indexBuffer[indexBufferUsed++] = startIndex + 2;
-
-    indexBuffer[indexBufferUsed++] = startIndex + 0;
-    indexBuffer[indexBufferUsed++] = startIndex + 2;
-    indexBuffer[indexBufferUsed++] = startIndex + 3;
+    DrawQuad(Vector2F(x, y), Vector2F(x + w, y), Vector2F(x + w, y + h), Vector2F(x, y + h), c);
 }
 void DrawCircle(float x, float y, float r, Color c, int sides, bool pacman)
 {
@@ -111,16 +115,5 @@ void DrawLine(float startX, float startY, float endX, float endY, float thicknes
     float x4 = startX - offsetX;
     float y4 = startY - offsetY;
 
-    AppendVertex(Vertex(x1, y1, z, c));
-    AppendVertex(Vertex(x2, y2, z, c));
-    AppendVertex(Vertex(x3, y3, z, c));
-    AppendVertex(Vertex(x4, y4, z, c));
-
-    indexBuffer[indexBufferUsed++] = startIndex;
-    indexBuffer[indexBufferUsed++] = startIndex + 1;
-    indexBuffer[indexBufferUsed++] = startIndex + 2;
-
-    indexBuffer[indexBufferUsed++] = startIndex;
-    indexBuffer[indexBufferUsed++] = startIndex + 2;
-    indexBuffer[indexBufferUsed++] = startIndex + 3;
+    DrawQuad(Vector2F(x1, y1), Vector2F(x2, y2), Vector2F(x3, y3), Vector2F(x4, y4), c);
 }

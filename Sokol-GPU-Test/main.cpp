@@ -5,7 +5,7 @@ int frameCount = 0;
 
 void GameFrame()
 {
-    DrawRect(0, 0, 100, 100, CYAN);
+    DrawRect(50, 50, 100, 100, CYAN);
     DrawCircle(400, 400, 100, YELLOW);
     DrawPolygon(100, 400, 200, MAGENTA, 9);
     DrawPolygon(750, 750, 100, BLUE, 11);
