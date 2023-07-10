@@ -479,7 +479,7 @@ int main()
         myWindow.DrawWholeWindow(0xFF3A75C5);
 
         mu_input_mousemove(ctx, mouseX, mouseY);
-        mu_input_keydown(ctx, MU_KEY_ALT);
+        //mu_input_keydown(ctx, MU_KEY_ALT);
         if (WasMouseJustPressed(MOUSE_LEFT))
         {
             mu_input_mousedown(ctx, mouseX, mouseY, 1);
@@ -489,27 +489,27 @@ int main()
             mu_input_mouseup(ctx, mouseX, mouseY, 1);
         }
 
-        // mu_begin(ctx);
-        // if (mu_begin_window(ctx, "My Window", mu_rect(0, 0, 500, 500)))
-        // {
-        //     if (mu_header(ctx, "Window Info"))
-        //     {
-        //         mu_Container *win = mu_get_current_container(ctx);
-        //         char buf[64];
-        //         int a[3]{200, -1};
-        //         mu_layout_row(ctx, 2, a, 0);
-        //         mu_label(ctx, "Position:");
-        //         sprintf(buf, "%d, %d", win->rect.x, win->rect.y);
-        //         mu_label(ctx, buf);
-        //         mu_label(ctx, "Size:");
-        //         sprintf(buf, "%d, %d", win->rect.w, win->rect.h);
-        //         mu_label(ctx, buf);
-        //         mu_button(ctx, "Banane");
-        //     }
+        mu_begin(ctx);
+        if (mu_begin_window(ctx, "My Window", mu_rect(0, 0, 500, 500)))
+        {
+            if (mu_header(ctx, "Window Info"))
+            {
+                mu_Container *win = mu_get_current_container(ctx);
+                char buf[64];
+                int a[3]{200, -1};
+                mu_layout_row(ctx, 2, a, 0);
+                mu_label(ctx, "Position:");
+                sprintf(buf, "%d, %d", win->rect.x, win->rect.y);
+                mu_label(ctx, buf);
+                mu_label(ctx, "Size:");
+                sprintf(buf, "%d, %d", win->rect.w, win->rect.h);
+                mu_label(ctx, buf);
+                mu_button(ctx, "Banane");
+            }
 
-        //     mu_end_window(ctx);
-        // }
-        // mu_end(ctx);
+            mu_end_window(ctx);
+        }
+        mu_end(ctx);
 
 #pragma region
         if (menu)
@@ -864,7 +864,7 @@ int main()
             myWindow.DrawText("5", 55 + 13 + 50 * 4, WINDOW_HEIGHT - 40, PivotType::Center);
 
             mu_begin(ctx);
-            if (mu_begin_window(ctx, "", mu_rect(WINDOW_WIDTH - 90, 0, 90, 315)))
+            if (mu_begin_window_ex(ctx, "", mu_rect(WINDOW_WIDTH - 90, 0, 90, 315), MU_OPT_NORESIZE | MU_OPT_NOSCROLL | MU_OPT_NOINTERACT))
             {
                 int a[1]{50};
                 char *s[6]{"1", "2", "3", "6", "4", "5"};
@@ -885,22 +885,25 @@ int main()
                 }
                 // ctx->style = ;
 
-                //static char buf[128];
+                // static char buf[128];
                 int submitted = 0;
-
 
                 // if (mu_textbox(ctx, buf, sizeof(buf)) & MU_RES_SUBMIT)
                 // {
                 //     submitted = 1;
                 // }
+                ctx->style->colors[MU_COLOR_BUTTON] = {75, 75, 75, 255};
+                ctx->style->colors[MU_COLOR_BUTTONHOVER] = {95, 95, 95, 255};
+                ctx->style->colors[MU_COLOR_BUTTONFOCUS] = {115, 115, 115, 255};
                 if (mu_button(ctx, "Save"))
                 {
                     submitted = 1;
                 }
                 if (submitted)
                 {
-                    SaveLevel();;
-                    //buf[0] = '\0';
+                    SaveLevel();
+                    ;
+                    // buf[0] = '\0';
                 }
 
                 mu_end_window(ctx);
@@ -916,22 +919,15 @@ int main()
             switch (cmd->type)
             {
             case MU_COMMAND_TEXT:
-                // r_draw_text(cmd->text.str, cmd->text.pos, cmd->text.color);
                 myWindow.DrawText(cmd->text.str, cmd->text.pos.x, cmd->text.pos.y, PivotType::TopLeft);
                 break;
             case MU_COMMAND_RECT:
-                // r_draw_rect(cmd->rect.rect, cmd->rect.color);
                 myWindow.DrawFullRect(cmd->rect.rect.w, cmd->rect.rect.h, cmd->rect.rect.x, cmd->rect.rect.y,
                                       MFB_ARGB(cmd->rect.color.a, cmd->rect.color.r, cmd->rect.color.g, cmd->rect.color.b));
                 break;
             case MU_COMMAND_ICON:
-                // r_draw_icon(cmd->icon.id, cmd->icon.rect, cmd->icon.color);
-                myWindow.DrawText(iconArray[cmd->icon.id], cmd->rect.rect.x, cmd->rect.rect.y, PivotType::TopLeft);
-                break;
-            case MU_COMMAND_CLIP:
-                // r_set_clip_rect(cmd->clip.rect);
-                // myWindow.DrawRectShape(cmd->rect.rect.w, cmd->rect.rect.h, cmd->rect.rect.x, cmd->rect.rect.y,
-                //                       MFB_ARGB(cmd->rect.color.a, cmd->rect.color.r, cmd->rect.color.g, cmd->rect.color.b));
+                myWindow.DrawIMG(rat, cmd->rect.rect.x, cmd->rect.rect.y);
+                // myWindow.DrawText(iconArray[cmd->icon.id], cmd->rect.rect.x, cmd->rect.rect.y, PivotType::TopLeft);
                 break;
             }
         }

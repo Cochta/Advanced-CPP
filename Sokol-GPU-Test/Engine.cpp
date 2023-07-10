@@ -4,11 +4,22 @@
 #include "sokol_gfx.h"
 #include "sokol_log.h"
 #include "sokol_glue.h"
-#include "triangle-sapp.glsl.h"
-
+#include "Shader.glsl.h"
+#include "IMG.cpp"
 #include "Engine.hpp"
 #include "Draw.cpp"
 
+#include <cstring>
+
+bool keys[SAPP_MAX_KEYCODES + 1];
+bool previousKeys[SAPP_MAX_KEYCODES + 1];
+
+bool mouseButtons[SAPP_MAX_MOUSEBUTTONS + 1];
+bool previousMouseButtons[SAPP_MAX_MOUSEBUTTONS + 1];
+
+Vector2F mousePosition = {0, 0};
+Vector2F previousMousePosition = {0, 0};
+bool mouseMoved = false;
 void GameFrame();
 
 static struct
@@ -20,6 +31,8 @@ static struct
 
 static void init(void)
 {
+    IMG texture("ressources/SimpleTileset.png");
+
     sg_desc desc = {
         .context = sapp_sgcontext(),
         .logger.func = slog_func,
@@ -37,8 +50,14 @@ static void init(void)
         .usage = SG_USAGE_DYNAMIC,
         .label = "triangle-indices"});
 
+    state.bind.fs_images[SLOT_tex] = sg_make_image((sg_image_desc){
+        .width = texture.width,
+        .height = texture.height,
+        .data.subimage[0][0] = sg_range{texture.img, (size_t)(texture.width * texture.height * texture.channels)},
+        .label = "cube-texture"});
+
     // create shader from code-generated sg_shader_desc
-    sg_shader shd = sg_make_shader(triangle_shader_desc(sg_query_backend()));
+    sg_shader shd = sg_make_shader(Shader_shader_desc(sg_query_backend()));
 
     // create a pipeline object (default render states are fine for triangle)
     sg_pipeline_desc pd{
@@ -48,8 +67,17 @@ static void init(void)
         .layout = {
             .attrs = {
                 [ATTR_vs_position].format = SG_VERTEXFORMAT_FLOAT3,
-                [ATTR_vs_color0].format = SG_VERTEXFORMAT_FLOAT4}},
-        .label = "triangle-pipeline"};
+                [ATTR_vs_color0].format = SG_VERTEXFORMAT_FLOAT4,
+                [ATTR_vs_uv0].format = SG_VERTEXFORMAT_FLOAT2}},
+
+        .label = "triangle-pipeline",
+
+        // Classic alpha blending
+        .colors[0].blend = (sg_blend_state){
+            .enabled = true,
+            .src_factor_rgb = SG_BLENDFACTOR_SRC_ALPHA,
+            .dst_factor_rgb = SG_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+        }};
 
     state.pip = sg_make_pipeline(pd);
 
@@ -86,6 +114,8 @@ sapp_desc sokol_main(int argc, char *argv[])
     (void)argc;
     (void)argv;
     return (sapp_desc){
+        .win32_console_create = true,
+        .event_cb = OnInput,
         .init_cb = init,
         .frame_cb = frame,
         .cleanup_cb = cleanup,
@@ -95,4 +125,85 @@ sapp_desc sokol_main(int argc, char *argv[])
         .icon.sokol_default = true,
         .logger.func = slog_func,
     };
+}
+void OnInput(const sapp_event *event)
+{
+    if (event->type == SAPP_EVENTTYPE_KEY_DOWN)
+    {
+        keys[event->key_code] = true;
+    }
+    else if (event->type == SAPP_EVENTTYPE_KEY_UP)
+    {
+        keys[event->key_code] = false;
+    }
+    else if (event->type == SAPP_EVENTTYPE_MOUSE_DOWN)
+    {
+        mouseButtons[event->mouse_button] = true;
+    }
+    else if (event->type == SAPP_EVENTTYPE_MOUSE_UP)
+    {
+        mouseButtons[event->mouse_button] = false;
+    }
+    else if (event->type == SAPP_EVENTTYPE_MOUSE_MOVE)
+    {
+        previousMousePosition = Vector2F(mousePosition.X, mousePosition.Y);
+        mousePosition = ConvertInputPosition({event->mouse_x, event->mouse_y});
+        mouseMoved = true;
+    }
+}
+
+void Update()
+{
+    if (!mouseMoved)
+    {
+        previousMousePosition = Vector2F(mousePosition.X, mousePosition.Y);
+    }
+
+    mouseMoved = false;
+    memcpy(previousKeys, keys, sizeof(keys));
+    memcpy(previousMouseButtons, mouseButtons, sizeof(mouseButtons));
+}
+
+bool IsKeyPressed(int key)
+{
+    return keys[key] && !previousKeys[key];
+}
+
+bool IsKeyReleased(int key)
+{
+    return !keys[key] && previousKeys[key];
+}
+
+bool IsKeyDown(int key)
+{
+    return keys[key];
+}
+
+bool IsMouseButtonPressed(int button)
+{
+    return mouseButtons[button] && previousMouseButtons[button] == 0;
+}
+
+bool IsMouseButtonReleased(int button)
+{
+    return mouseButtons[button] == 0 && previousMouseButtons[button];
+}
+
+bool IsMouseButtonDown(int button)
+{
+    return mouseButtons[button];
+}
+
+Vector2F GetMousePosition()
+{
+    return mousePosition;
+}
+
+Vector2F GetPreviousMousePosition()
+{
+    return previousMousePosition;
+}
+Vector2F ConvertInputPosition(Vector2F position)
+{
+    return {position.X, sapp_height() - position.Y};
 }

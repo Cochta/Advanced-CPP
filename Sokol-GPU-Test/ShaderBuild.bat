@@ -1,0 +1,1 @@
+sokol-shdc.exe --input Shader.glsl --output Shader.glsl.h --slang hlsl5:glsl330

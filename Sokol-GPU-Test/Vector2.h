@@ -2,6 +2,8 @@
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <vector>
+#include <iostream>
 
 template <typename T>
 class Vector2
@@ -13,7 +15,7 @@ public:
 
     Vector2<T> operator+(const Vector2<T> &other) const
     {
-        return Vector2<T>(X + other.X, Y + other.Y);
+        c
     }
 
     Vector2<T> operator-(const Vector2<T> &other) const
