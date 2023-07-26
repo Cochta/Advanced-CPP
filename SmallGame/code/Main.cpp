@@ -10,6 +10,8 @@
 #include <filesystem>
 #include <fstream>
 
+// python3 -m http.server 8000
+
 #define __cdecl
 
 #define ARR_LEN(arr) ((int)(sizeof(arr) / sizeof(*arr)))
@@ -489,27 +491,27 @@ int main()
             mu_input_mouseup(ctx, mouseX, mouseY, 1);
         }
 
-        mu_begin(ctx);
-        if (mu_begin_window(ctx, "My Window", mu_rect(0, 0, 500, 500)))
-        {
-            if (mu_header(ctx, "Window Info"))
-            {
-                mu_Container *win = mu_get_current_container(ctx);
-                char buf[64];
-                int a[3]{200, -1};
-                mu_layout_row(ctx, 2, a, 0);
-                mu_label(ctx, "Position:");
-                sprintf(buf, "%d, %d", win->rect.x, win->rect.y);
-                mu_label(ctx, buf);
-                mu_label(ctx, "Size:");
-                sprintf(buf, "%d, %d", win->rect.w, win->rect.h);
-                mu_label(ctx, buf);
-                mu_button(ctx, "Banane");
-            }
+        // mu_begin(ctx);
+        // if (mu_begin_window(ctx, "My Window", mu_rect(0, 0, 500, 500)))
+        // {
+        //     if (mu_header(ctx, "Window Info"))
+        //     {
+        //         mu_Container *win = mu_get_current_container(ctx);
+        //         char buf[64];
+        //         int a[3]{200, -1};
+        //         mu_layout_row(ctx, 2, a, 0);
+        //         mu_label(ctx, "Position:");
+        //         sprintf(buf, "%d, %d", win->rect.x, win->rect.y);
+        //         mu_label(ctx, buf);
+        //         mu_label(ctx, "Size:");
+        //         sprintf(buf, "%d, %d", win->rect.w, win->rect.h);
+        //         mu_label(ctx, buf);
+        //         mu_button(ctx, "Banane");
+        //     }
 
-            mu_end_window(ctx);
-        }
-        mu_end(ctx);
+        //     mu_end_window(ctx);
+        // }
+        // mu_end(ctx);
 
 #pragma region
         if (menu)

@@ -2,7 +2,7 @@ call C:\Users\const\OneDrive\Bureau\Empscripten\emsdk\emsdk_env.bat
 
 mkdir bin
 
-call C:\Users\const\OneDrive\Bureau\Empscripten\emsdk\upstream\emscripten\em++ code\main.cpp ^
+call C:\Users\const\OneDrive\Bureau\Empscripten\emsdk\upstream\emscripten\em++ code\main.cpp code/microui.c ^
     -o bin\game.js ^
     -std=c++20 ^
     -Wall -Wextra ^

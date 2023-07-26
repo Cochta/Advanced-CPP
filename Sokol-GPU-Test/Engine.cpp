@@ -27,11 +27,14 @@ static struct
     sg_pipeline pip;
     sg_bindings bind;
     sg_pass_action pass_action;
+    sg_image texture;
+    sg_image texture2;
 } state;
 
 static void init(void)
 {
     IMG texture("ressources/SimpleTileset.png");
+    IMG texture2("ressources/Beer.png");
 
     sg_desc desc = {
         .context = sapp_sgcontext(),

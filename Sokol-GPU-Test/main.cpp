@@ -36,7 +36,7 @@ void GameFrame()
     Scale(ratio);
     DrawRect(300, 300, 50, 50, WHITE);
     DrawIMG(500, 500, 50, 50, 3, WHITE);
-    DrawCircle(400, 400, 100, MAGENTA);
+    DrawCircle(400, 400, 100, GREEN);
     // DrawPolygon(100, 400, 200, MAGENTA, 9);
     // DrawPolygon(750, 750, 100, BLUE, 11);
     // DrawLine(100, 50, 400, 600, 1, BLUE);
