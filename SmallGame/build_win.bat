@@ -1,7 +1,7 @@
 mkdir bin
 xcopy ressources "bin/ressources" /E /I /Y
 xcopy levels "bin/levels" /E /I /Y
-clang++ code/main.cpp code/microui.c ^
+clang++ code/SpaceShooter.cpp code/microui.c ^
     -o bin/game.exe ^
     -std=c++20   ^
     -Wall -Wextra -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable -Wno-deprecated-declarations -Wno-missing-field-initializers ^

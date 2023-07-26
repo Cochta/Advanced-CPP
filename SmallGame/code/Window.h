@@ -314,7 +314,7 @@ IMG Window::ZoomedIMG(IMG image, float zoomFactor)
 
     return zoomedImage;
 }
-void Window::DrawText(std::string text, int x, int y, PivotType pivotType)
+void Window::DrawText(std::string text, int x, int y, PivotType pivotType = PivotType::Center)
 {
     int zoom = 3;
     int posX = 0;
